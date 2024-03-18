@@ -11,10 +11,6 @@ import tqdm
 import torch.nn.functional as F
 from torch.nn import Linear
 import torch_geometric as tg
-from snore import SNoRe
-from stellargraph import StellarDiGraph
-from stellargraph.data import UniformRandomMetaPathWalk
-
 import node2vec as n2v
 
 
@@ -38,8 +34,11 @@ class AdamicAdar(PredictionModel):
         self.nx_graph = None
 
     def train(self, adj, pos_edges, neg_edges, val_pos, val_neg, mgraph, classes):
-        self.nx_graph = nx.from_scipy_sparse_matrix(adj)
-        self.nx_graph.to_undirected()
+        # Convert the sparse adjacency matrix to a NetworkX graph
+        self.nx_graph = nx.Graph(adj)
+
+        # Convert the graph to an undirected graph
+        self.nx_graph = self.nx_graph.to_undirected()
 
     def predict(self, test_edges):
         start_time = time.time()
@@ -349,25 +348,28 @@ class MetaPath2vec(PredictionModel):
     def train(self, adj, pos_edges, neg_edges, pos_test, val_neg, mgraph, classes):
         start_time = time.time()
         mgraph.remove_edges_from(pos_test)
-        sg = StellarDiGraph.from_networkx(mgraph, edge_type_attr="type")
+        # Convert mgraph to NetworkX graph
+        nx_graph = nx.Graph(mgraph)
         metapaths = [["default"]*80]
-        rw = UniformRandomMetaPathWalk(sg, seed=self.seed)
-        walks = rw.run(
-            nodes=list(sg.nodes()),  # root nodes
-            length=self.walk_length,  # maximum length of a random walk
-            n=self.num_walks,  # number of random walks per root node
-            metapaths=metapaths,  # the metapaths
-        )
+
+        # Generate random walks using NetworkX
+        walks = []
+        for _ in range(self.num_walks):
+            for node in nx_graph.nodes():
+                walk = [node]
+                for _ in range(self.walk_length - 1):
+                    neighbors = list(nx_graph.neighbors(walk[-1]))
+                    if neighbors:
+                        walk.append(np.random.choice(neighbors))
+                    else:
+                        break
+                walks.append(walk)
 
         model = Word2Vec(walks, vector_size=self.dim, window=self.window_size, min_count=0,
                          sg=1, workers=self.workers, epochs=self.iters, seed=self.seed)
         emb_mappings = model.wv
 
-        emb_list = []
-        for node_index in range(0, len(mgraph.nodes)):
-            node_str = node_index
-            node_emb = emb_mappings[node_str]
-            emb_list.append(node_emb)
+        emb_list = [emb_mappings[str(node_index)] for node_index in range(len(nx_graph.nodes))]
         self.embedding = np.vstack(emb_list)
         self.time = time.time() - start_time
 
@@ -378,7 +380,6 @@ class MetaPath2vec(PredictionModel):
         preds = np.array(preds).squeeze()
 
         return preds / np.max(preds)
-
 
 class SpectralEmbedding(PredictionModel):
     def __init__(self):

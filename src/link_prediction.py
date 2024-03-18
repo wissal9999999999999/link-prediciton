@@ -40,7 +40,7 @@ def create_splits(graph, cv=5, neg_ratio=1, val=0, seed=18):
     probs = np.array(probs)
     etype_prob = probs / np.sum(probs)
 
-    graph = nx.to_scipy_sparse_matrix(graph)
+    graph = nx.adjacency_matrix(graph)
     graph.setdiag(0)
     graph.eliminate_zeros()
     g = graph - sp.triu(graph)
