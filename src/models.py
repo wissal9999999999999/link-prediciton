@@ -55,8 +55,10 @@ class Jaccard(PredictionModel):
         self.nx_graph = None
 
     def train(self, adj, pos_edges, neg_edges, val_pos, val_neg, mgraph, classes):
-        self.nx_graph = nx.from_scipy_sparse_matrix(adj)
-        self.nx_graph.to_undirected()
+        self.nx_graph = nx.Graph(adj)
+
+        # Convert the graph to an undirected graph
+        self.nx_graph = self.nx_graph.to_undirected()
 
     def predict(self, test_edges):
         start_time = time.time()
@@ -73,8 +75,11 @@ class PreferentialAttachment(PredictionModel):
         self.nx_graph = None
 
     def train(self, adj, pos_edges, neg_edges, val_pos, val_neg, mgraph, classes):
-        self.nx_graph = nx.from_scipy_sparse_matrix(adj)
-        self.nx_graph.to_undirected()
+        # Convert the sparse adjacency matrix to a NetworkX graph
+        self.nx_graph = nx.Graph(adj)
+
+        # Convert the graph to an undirected graph
+        self.nx_graph = self.nx_graph.to_undirected()
 
     def predict(self, test_edges):
         start_time = time.time()
