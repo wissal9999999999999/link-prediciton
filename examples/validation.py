@@ -16,7 +16,7 @@ if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
     # Construct the path to go.json relative to the script directory
-    data_path = os.path.join(script_dir, "../..", "out.json")
+    data_path = os.path.join(script_dir, "../..", "out-with-missing-links.json")
 
     # Read the graph from the JSON file
     graph, node_ids, edge_ids = read_graph_from_json(data_path)
